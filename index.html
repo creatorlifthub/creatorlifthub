@@ -6,6 +6,18 @@
 <title>CreatorLift Hub — Elevate · Engage · Empire</title>
 <meta name="description" content="Premium Instagram, Facebook & YouTube growth services. Order via WhatsApp instantly.">
 
+<!-- ===== PWA Support ===== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0066ff">
+<meta name="background-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CreatorLift">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+
 <style>
 /* =====================================================
    CREATORLIFT HUB — MAIN STYLESHEET
@@ -185,6 +197,15 @@
     padding: 9px 22px !important;
     font-size: 13px !important;
     border-radius: 50px;
+  }
+  .install-btn-wrap { list-style: none; }
+  .install-btn {
+    padding: 9px 22px;
+    font-size: 13px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
   }
   .hamburger {
     display: none;
@@ -1855,6 +1876,9 @@
       <li><a href="#why">Why Us</a></li>
       <li><a href="#contact">Contact</a></li>
       <li><a href="#order" class="glow-btn nav-cta"><span>🚀 Order Now</span></a></li>
+      <li id="installBtnWrap" class="install-btn-wrap" style="display:none;">
+        <button class="glow-btn install-btn" id="installBtn" onclick="installApp()"><span>📲 Install App</span></button>
+      </li>
     </ul>
     <button class="hamburger" onclick="toggleMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -1873,6 +1897,7 @@
   <a href="#why" onclick="toggleMenu()">Why Us</a>
   <a href="#contact" onclick="toggleMenu()">Contact</a>
   <a href="#order" class="glow-btn" onclick="toggleMenu()"><span>🚀 Order Now via WhatsApp</span></a>
+  <button class="glow-btn install-btn" id="installBtnMobile" onclick="installApp()" style="display:none;"><span>📲 Install App</span></button>
 </div>
 
 <!-- ===================== HERO ===================== -->
@@ -3512,6 +3537,62 @@ document.addEventListener('DOMContentLoaded', () => {
     revealObserver.observe(el);
   });
 });
+
+// =====================================================
+// PWA: Install Prompt + Service Worker Registration
+// =====================================================
+let deferredInstallPrompt = null;
+
+function showInstallButtons() {
+  const desktopBtn = document.getElementById('installBtnWrap');
+  const mobileBtn = document.getElementById('installBtnMobile');
+  if (desktopBtn) desktopBtn.style.display = 'block';
+  if (mobileBtn) mobileBtn.style.display = 'block';
+}
+
+function hideInstallButtons() {
+  const desktopBtn = document.getElementById('installBtnWrap');
+  const mobileBtn = document.getElementById('installBtnMobile');
+  if (desktopBtn) desktopBtn.style.display = 'none';
+  if (mobileBtn) mobileBtn.style.display = 'none';
+}
+
+// Fired by the browser when the app is eligible to be installed
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  showInstallButtons();
+});
+
+// Called when the user taps the "Install App" button
+function installApp() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(() => {
+    deferredInstallPrompt = null;
+    hideInstallButtons();
+  });
+}
+
+// Hide the button once the app has actually been installed
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  hideInstallButtons();
+});
+
+// If already running as an installed app, never show the install button
+if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+  hideInstallButtons();
+}
+
+// Register the service worker for offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {
+      // Fails silently if sw.js isn't reachable (e.g. opened as a local file)
+    });
+  });
+}
 
 </script>
 </body>
