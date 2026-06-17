@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CreatorLift Hub Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--bg:#000;--card:#0f1117;--card2:#151925;--blue:#0066ff;--neon:#00aaff;--text:#fff;--muted:rgba(255,255,255,.65);--border:rgba(0,170,255,.25);--danger:#ef4444;--ok:#22c55e;--warn:#f59e0b}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:radial-gradient(circle at top,rgba(0,102,255,.18),transparent 35%),#000;color:var(--text)}
+    .wrap{max-width:1200px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:22px}.brand{display:flex;gap:12px;align-items:center}.logo{width:50px;height:50px;border-radius:12px;object-fit:cover;box-shadow:0 0 24px rgba(0,102,255,.45)}h1{font-size:22px;margin:0}.sub{color:var(--muted);font-size:13px}.card{background:linear-gradient(180deg,rgba(0,102,255,.08),transparent),var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 0 40px rgba(0,102,255,.08)}
+    .login{max-width:420px;margin:70px auto}.field{margin:12px 0}.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}input,select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#090b10;color:#fff;outline:none}input:focus,select:focus{border-color:var(--neon);box-shadow:0 0 0 3px rgba(0,170,255,.1)}button{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;color:#fff;background:var(--blue)}button:hover{filter:brightness(1.12)}.btn2{background:#1f2937}.danger{background:var(--danger)}.ok{background:var(--ok)}.warn{background:var(--warn)}.hidden{display:none!important}
+    .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}.stat{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}.stat b{font-size:24px;color:var(--neon)}.filters{display:grid;grid-template-columns:1fr 170px 170px;gap:10px;margin-bottom:14px}.orders{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}.order{background:var(--card2);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:16px}.row{display:flex;justify-content:space-between;gap:10px;margin:7px 0;font-size:13px}.row span:first-child{color:var(--muted)}.id{font-family:monospace;color:var(--neon);font-size:12px;word-break:break-all}.status{display:inline-block;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:900;background:rgba(0,170,255,.13);border:1px solid var(--border);color:var(--neon)}.shot{width:100%;height:170px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.1);margin:10px 0;background:#050505}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.msg{font-size:13px;color:var(--muted);margin-top:10px}.toast{position:fixed;right:18px;bottom:18px;background:var(--card2);border:1px solid var(--border);padding:14px 16px;border-radius:14px;box-shadow:0 0 35px rgba(0,102,255,.25);display:none}.toast.show{display:block}.link{color:var(--neon);word-break:break-all}a{color:var(--neon)}
+    @media(max-width:800px){.top{flex-direction:column;align-items:flex-start}.stats{grid-template-columns:repeat(2,1fr)}.filters{grid-template-columns:1fr}.wrap{padding:14px}.orders{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="loginBox" class="login card">
+    <div class="brand" style="margin-bottom:18px"><img class="logo" src="57303.png" onerror="this.style.display='none'"><div><h1>CreatorLift Hub</h1><div class="sub">Private Admin Login</div></div></div>
+    <div class="field"><label>Email</label><input id="email" type="email" placeholder="admin@email.com"></div>
+    <div class="field"><label>Password</label><input id="password" type="password" placeholder="Password"></div>
+    <button style="width:100%" onclick="login()">Login</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="top">
+      <div class="brand"><img class="logo" src="57303.png" onerror="this.style.display='none'"><div><h1>CreatorLift Hub Admin</h1><div class="sub" id="adminEmail">Live order dashboard</div></div></div>
+      <button class="btn2" onclick="logout()">Logout</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="sub">Total</div><b id="totalCount">0</b></div>
+      <div class="stat"><div class="sub">Pending</div><b id="pendingCount">0</b></div>
+      <div class="stat"><div class="sub">Verified</div><b id="verifiedCount">0</b></div>
+      <div class="stat"><div class="sub">Completed</div><b id="completedCount">0</b></div>
+      <div class="stat"><div class="sub">Revenue</div><b id="revenueCount">₹0</b></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="filters">
+        <input id="search" placeholder="Search order ID, name, number, service..." oninput="renderOrders()">
+        <select id="statusFilter" onchange="renderOrders()"><option value="">All Status</option><option>Pending</option><option>Payment Verified</option><option>Processing</option><option>Completed</option><option>Cancelled</option></select>
+        <button onclick="loadOrders()">Refresh</button>
+      </div>
+      <div class="sub">New orders update live when Realtime is enabled.</div>
+    </div>
+    <div id="orders" class="orders"></div>
+  </div>
+</div>
+<div id="toast" class="toast">🔔 New Order Received</div>
+<audio id="beep" preload="auto"><source src="data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YRAAAAAA/////wAAAP///wAAAP///wAAAP///w==" type="audio/wav"></audio>
+<script>
+const SUPABASE_URL = "https://llxadndbyumjptuqkfek.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_HQaZDjybCitbLxyC0rZkOg_zXLwT0xz";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let allOrders = [];
+let channel = null;
+const money = n => '₹' + Number(n || 0).toLocaleString('en-IN');
+
+async function login(){
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('password').value;
+  const msg=document.getElementById('loginMsg'); msg.textContent='Logging in...';
+  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+  if(error){ msg.textContent='❌ '+error.message; return; }
+  await startApp(data.user);
+}
+async function logout(){ await supabaseClient.auth.signOut(); location.reload(); }
+async function startApp(user){
+  document.getElementById('loginBox').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('adminEmail').textContent=user.email;
+  await loadOrders(); subscribeRealtime();
+}
+async function loadOrders(){
+  const {data,error}=await supabaseClient.from('orders').select('*').order('created_at',{ascending:false});
+  if(error){ alert('Load error: '+error.message); return; }
+  allOrders=data||[]; renderOrders();
+}
+function subscribeRealtime(){
+  if(channel) return;
+  channel=supabaseClient.channel('orders-live')
+    .on('postgres_changes',{event:'*',schema:'public',table:'orders'}, payload=>{
+      loadOrders();
+      if(payload.eventType==='INSERT') notify();
+    }).subscribe();
+}
+function notify(){
+  const t=document.getElementById('toast'); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3500);
+  document.getElementById('beep').play().catch(()=>{});
+}
+function renderOrders(){
+  const q=(document.getElementById('search').value||'').toLowerCase();
+  const sf=document.getElementById('statusFilter').value;
+  const list=allOrders.filter(o=>{
+    const txt=[o.order_code,o.id,o.customer_name,o.whatsapp,o.platform,o.service,o.order_link,o.status].join(' ').toLowerCase();
+    return (!q || txt.includes(q)) && (!sf || o.status===sf);
+  });
+  document.getElementById('totalCount').textContent=allOrders.length;
+  document.getElementById('pendingCount').textContent=allOrders.filter(o=>o.status==='Pending').length;
+  document.getElementById('verifiedCount').textContent=allOrders.filter(o=>o.status==='Payment Verified').length;
+  document.getElementById('completedCount').textContent=allOrders.filter(o=>o.status==='Completed').length;
+  document.getElementById('revenueCount').textContent=money(allOrders.filter(o=>o.status!=='Cancelled').reduce((s,o)=>s+Number(o.amount||0),0));
+  const box=document.getElementById('orders');
+  if(!list.length){ box.innerHTML='<div class="card">No orders found.</div>'; return; }
+  box.innerHTML=list.map(o=>`<div class="order">
+    <div class="row"><span>Order ID</span><b class="id">${escapeHtml(o.order_code || o.id)}</b></div>
+    <div class="row"><span>Status</span><b class="status">${escapeHtml(o.status||'Pending')}</b></div>
+    <div class="row"><span>Name</span><b>${escapeHtml(o.customer_name||'')}</b></div>
+    <div class="row"><span>WhatsApp</span><b>${escapeHtml(o.whatsapp||'')}</b></div>
+    <div class="row"><span>Platform</span><b>${escapeHtml(o.platform||'')}</b></div>
+    <div class="row"><span>Service</span><b>${escapeHtml(o.service||'')}</b></div>
+    <div class="row"><span>Quantity</span><b>${escapeHtml(String(o.quantity||''))}</b></div>
+    <div class="row"><span>Amount</span><b>${money(o.amount)}</b></div>
+    <div class="row"><span>Date</span><b>${new Date(o.created_at).toLocaleString()}</b></div>
+    <div class="row" style="display:block"><span>Link</span><br><a class="link" href="${escapeAttr(o.order_link)}" target="_blank">${escapeHtml(o.order_link||'')}</a></div>
+    ${o.payment_screenshot ? `<a href="${escapeAttr(o.payment_screenshot)}" target="_blank"><img class="shot" src="${escapeAttr(o.payment_screenshot)}"></a>` : '<div class="msg">No screenshot</div>'}
+    <div class="actions">
+      <button class="ok" onclick="setStatus('${o.id}','Payment Verified')">Verify</button>
+      <button onclick="setStatus('${o.id}','Processing')">Processing</button>
+      <button onclick="setStatus('${o.id}','Completed')">Completed</button>
+      <button class="danger" onclick="setStatus('${o.id}','Cancelled')">Cancel</button>
+    </div>
+  </div>`).join('');
+}
+async function setStatus(id,status){
+  const {error}=await supabaseClient.from('orders').update({status}).eq('id',id);
+  if(error){ alert('Update error: '+error.message); return; }
+  await loadOrders();
+}
+function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+function escapeAttr(v){return escapeHtml(v).replace(/`/g,'&#96;');}
+
+supabaseClient.auth.getUser().then(({data})=>{ if(data.user) startApp(data.user); });
+</script>
+</body>
+</html>
